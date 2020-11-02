@@ -2104,12 +2104,12 @@ class ForeverAction(BuilderAction):
 
         distance = self.do_action.do_location.eval() - (program_builder.build_address.eval() + 2)
         if distance < -128 or distance > 127:
-        	inst = "BRL"
+            inst = "BRL"
             opcode = program_builder.assembler.opcodes.get_instruction_opcode(inst, Opcodes.OpcodeDatabase.AddressingMode.RELATIVE_LONG)
             hex_distance = distance & 0xFFFF
             ret = bytes([opcode, hex_distance & 0xFF, (hex_distance >> 8) & 0xFF])
         else:
-        	inst = "BRA"
+            inst = "BRA"
             opcode = program_builder.assembler.opcodes.get_instruction_opcode(inst, Opcodes.OpcodeDatabase.AddressingMode.RELATIVE)
             hex_distance = distance & 0xFF
             ret = bytes([opcode, hex_distance])
