@@ -85,7 +85,7 @@ CSBCAsm includes support for
 * Logical OR `||`, AND `&&`, and NOT `!`
 * Comparison Equal to `==`, not equal to `!=`, and comparisons `<`, `<=` , `>`, `>=`
 * Binary operators AND `&`, OR `|`, NOT `~`,  XOR `^`, LSHIFT `<<`, RSHIFT `>>`
-* High and low byte from word unary operators `<` and `>`.  Long word support using `&` (see below).
+* High and low byte from word unary operators `>` and `<` (respectively).  Long word support using `&` (see below).
 * addition `-`, subtraction `-`
 * multiplication `*`, division `/`, modulo `%`, power `**`
 * And parentheses `()` to group expressions
@@ -132,6 +132,10 @@ Diverging from most other assemblers, temporary labels are prefixed with a **@**
 ```
 
 Notice that the final JMP doesn't require the minus sign, as there's no ambiguity on which label its referencing -- it uses the most recent definition.  It's suggested to always use + and - when using temporary labels, however.
+
+### This label
+
+The local this label `.` can be used to refer to the address of the current instruction.
 
 ### Long Labels
 

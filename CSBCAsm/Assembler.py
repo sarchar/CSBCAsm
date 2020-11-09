@@ -1593,13 +1593,11 @@ class InsertBytes(BuilderAction):
     def _validate(self, program_builder):
         required_byte_size = 0
         for operand in self.operands.value:
-            # Announce label references
-            for operand in self.operands.value:
-                if isinstance(operand, ParserAST.QuotedString):
-                    required_byte_size += len(operand.value)
-                else:
-                    program_builder.make_label_references(self.line, operand, self)
-                    required_byte_size += 1
+            if isinstance(operand, ParserAST.QuotedString):
+                required_byte_size += len(operand.value)
+            else:
+                program_builder.make_label_references(self.line, operand, self)
+                required_byte_size += 1
         if program_builder.assembler.verbose >= Assembler.VERBOSE_BUILD:
             print("=== {}: DB takes {} bytes".format(program_builder.require_current_segment(self.line).name.value, required_byte_size))
         return required_byte_size
