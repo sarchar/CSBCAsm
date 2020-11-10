@@ -2252,7 +2252,8 @@ class CaseAction(BuilderAction):
         self.prepend_bra = False
         if switch_action is not None and isinstance(switch_action, CaseAction):
             self.prepend_bra = True
-            switch_action.set_next_case(program_builder)
+            build_address = ParserAST.BinaryOp_Add(program_builder.build_address, ParserAST.Number(2, 'hex', 1)).collapse()
+            switch_action.set_next_case(build_address)
             switch_action = switch_action.switch_action
 
         if switch_action is None or not isinstance(switch_action, SwitchAction):
@@ -2293,8 +2294,8 @@ class CaseAction(BuilderAction):
 
         raise Exception()
 
-    def set_next_case(self, program_builder):
-        self.next_case_address = program_builder.build_address.collapse()
+    def set_next_case(self, build_address):
+        self.next_case_address = build_address.collapse()
 
     def _generate_bytes(self, program_builder, listing_fp):
         ret = []
@@ -2312,8 +2313,8 @@ class CaseAction(BuilderAction):
 
             if listing_fp is not None:
                 lb = program_builder.current_segment.listing_buffer
-                dist_str = "BRA 0x{:04X}".format(int.from_bytes(bytes([hex_distance]), 'little', signed=True) + (program_builder.build_address.eval() & 0xFFFF) + 2)
-                lb.format_with_address_and_bytes(program_builder.build_address.eval(), ret, dist_str, comment=";; ENDCASE")
+                dist_str = "BRA 0x{:04X}".format(int.from_bytes(bytes([hex_distance]), 'little', signed=True) + (build_address.eval() & 0xFFFF) + 2)
+                lb.format_with_address_and_bytes(build_address.eval(), ret, dist_str, comment=";; ENDCASE")
             
             build_address = ParserAST.BinaryOp_Add(build_address, ParserAST.Number(len(addtl), 'hex', 1)).collapse()
 
@@ -2352,17 +2353,23 @@ class CaseAction(BuilderAction):
                 dist_str = "{} #0x{:04X}".format(inst, v)
                 case_str = ";; CASE #0x{:04X}".format(v)
             else:
-                dist_str = "{} 0x{:02X}".format(inst, v & 0xFF)
+                dist_str = "{} #0x{:02X}".format(inst, v & 0xFF)
                 case_str = ";; CASE #0x{:02X}".format(v & 0xFF)
             lb = program_builder.current_segment.listing_buffer
-            lb.format_with_address_and_bytes(program_builder.build_address.eval(), ret, dist_str, comment=case_str)
+            lb.format_with_address_and_bytes(build_address.eval(), addtl, dist_str, comment=case_str)
+            build_address = ParserAST.BinaryOp_Add(build_address, ParserAST.Number(len(addtl), 'hex', 1)).collapse()
 
         opcode = program_builder.assembler.opcodes.get_instruction_opcode("BNE", Opcodes.OpcodeDatabase.AddressingMode.RELATIVE)
-        distance = self.next_case_address.eval() - (program_builder.build_address.eval() + 2 + len(ret))
+        distance = self.next_case_address.eval() - (build_address.eval() + 2)
         if distance < -128 or distance > 127:
             raise RelativeBranchOutOfRangeError("Line {}: CASE/ENDSWITCH distance too large".format(self.line.line_number))
         hex_distance = distance & 0xFF
         ret = ret + [opcode, hex_distance]
+
+        if listing_fp is not None:
+            dist_str = "{} 0x{:04X}".format("BNE", int.from_bytes(bytes([hex_distance]), 'little', signed=True) + (build_address.eval() & 0xFFFF) + 2)
+            lb = program_builder.current_segment.listing_buffer
+            lb.format_with_address_and_bytes(build_address.eval(), [opcode, hex_distance], dist_str)
 
         return ret
 
@@ -2376,7 +2383,7 @@ class EndSwitchAction(BuilderAction):
     def _validate(self, program_builder):
         switch_action = program_builder.pop_flow_control()
         if switch_action is not None and isinstance(switch_action, CaseAction):
-            switch_action.set_next_case(program_builder)
+            switch_action.set_next_case(program_builder.build_address)
             switch_action = switch_action.switch_action
 
         if switch_action is None or not isinstance(switch_action, SwitchAction):
