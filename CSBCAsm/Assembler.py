@@ -2261,6 +2261,9 @@ class CaseAction(BuilderAction):
         self.switch_action = switch_action
 
         try:
+            # Complete all the name_references that reference equates now
+            program_builder.replace_equates(self.line, self.immediate.value)
+
             v = self.immediate.value.collapse()
             # Good
             # resulting code will be
@@ -2276,16 +2279,17 @@ class CaseAction(BuilderAction):
                 elif v.stated_byte_size <= 1:
                     return 6 if self.prepend_bra else 4
                 else:
-                    raise ParameterTooLargeError("Line {}: argument to CASE is too large".format(line.line_number))
+                    raise ParameterTooLargeError("Line {}: argument to CASE is too large".format(self.line.line_number))
             else:
                 if program_builder.index_mode == 16 and v.stated_byte_size <= 2:
                     return 7 if self.prepend_bra else 5
                 elif v.stated_byte_size <= 1:
                     return 6 if self.prepend_bra else 4
                 else:
-                    raise ParameterTooLargeError("Line {}: argument to CASE is too large".format(line.line_number))
+                    raise ParameterTooLargeError("Line {}: argument to CASE is too large".format(self.line.line_number))
         except:
-            raise FeatureNotImplementedError("Line {}: argument to CASE must be evaluatable (no labels)".format(line.line_number))
+            #raise FeatureNotImplementedError("Line {}: argument to CASE must be evaluatable (no labels)".format(self.line.line_number))
+            raise
 
         raise Exception()
 
