@@ -215,6 +215,9 @@ class UnaryOp():
         return self.value.find_referenced_names(search_results)
 
 class UnaryOp_Negate(UnaryOp):
+    def guess_size(self):
+        return self.value.guess_size()
+
     def collapse(self, drop_overflow_bytes=False):
         c = self.value.collapse(drop_overflow_bytes=drop_overflow_bytes)
         # negating shouldn't change the byte size

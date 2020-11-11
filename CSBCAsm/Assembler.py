@@ -1596,6 +1596,7 @@ class InsertBytes(BuilderAction):
             if isinstance(operand, ParserAST.QuotedString):
                 required_byte_size += len(operand.value)
             else:
+                program_builder.replace_equates(self.line, operand)
                 program_builder.make_label_references(self.line, operand, self)
                 required_byte_size += 1
         if program_builder.assembler.verbose >= Assembler.VERBOSE_BUILD:
@@ -1649,6 +1650,7 @@ class InsertWords(BuilderAction):
 
         # Announce label references
         for operand in self.operands.value:
+            program_builder.replace_equates(self.line, operand)
             program_builder.make_label_references(self.line, operand, self)
             required_byte_size += 2
 
@@ -1685,6 +1687,7 @@ class FillBytes(BuilderAction):
 
         # Announce label references
         for operand in self.operands.value:
+            program_builder.replace_equates(self.line, operand)
             program_builder.make_label_references(self.line, operand, self)
 
         count = self.operands.value[0]
@@ -1733,6 +1736,7 @@ class FillWords(BuilderAction):
 
         # Announce label references
         for operand in self.operands.value:
+            program_builder.replace_equates(self.line, operand)
             program_builder.make_label_references(self.line, operand, self)
         count = self.operands.value[0]
 
