@@ -146,6 +146,7 @@ class ProgramBuilder():
             'FILL'     : self._process_scd_fill,
             'FILLW'    : self._process_scd_fillw,
             'GLOBAL'   : self._process_scd_global,
+            'GLOBALALL': self._process_scd_globalall,
             'INCLUDE'  : self._process_scd_include,
             'INCBIN'   : self._process_scd_incbin,
             'MACRO'    : self._process_scd_macro,
@@ -257,7 +258,7 @@ class ProgramBuilder():
 
         current_segment.declare_label(label_str, label_declaration)
 
-        if label_str in self._global_labels:
+        if label_str in self._global_labels or current_segment.global_all:
             self._label_declarations[label_str] = label_declaration
             
         return label_declaration
@@ -495,6 +496,16 @@ class ProgramBuilder():
                 label_declaration = self.current_segment.get_label(operand.value)
                 if label_declaration is not None:
                     self._label_declarations[operand.value] = label_declaration
+
+    def _process_scd_globalall(self, line, i, statement):
+        if len(statement.operands.value) > 0:
+            raise IncorrectParameterCountError("Line {}: invalid number of arguments to GLOBALALL".format(line.line_number))
+        action = SetGlobalAll(line)
+        self.append_action(action)
+        if self.current_segment is not None:
+            self.current_segment.global_all = True
+        if self.assembler.verbose >= Assembler.VERBOSE_EVERYTHING:
+            print("*** Created SetGlobalAll")
 
     def _process_scd_incbin(self, line, i, statement):
         if len(statement.operands.value) != 1:
@@ -736,6 +747,7 @@ class Segment():
         self.last_build_address = start.collapse()
         self.listing_buffer = None
         self.listing_buffer_build_address = None
+        self.global_all = False
         
         self._label_declarations = {
         }
@@ -1830,6 +1842,22 @@ class SetIndex16(BuilderAction):
     def _generate_bytes(self, program_builder, listing_fp):
         program_builder.index_mode = 16
         return bytes()
+
+class SetGlobalAll(BuilderAction):
+    def __init__(self, line):
+        self.line = line
+
+    def _validate(self, program_builder):
+        cs = program_builder.require_current_segment(self.line)
+        if program_builder.assembler.verbose >= Assembler.VERBOSE_BUILD:
+            print("=== Setting GLOBAL_ALL on segment {}".format(cs.name.value))
+        cs.global_all = True
+        return 0
+
+    def _generate_bytes(self, program_builder, listing_fp):
+        program_builder.accumulator_mode = 8
+        return bytes()
+
 
 class IncBinAction(BuilderAction):
     def __init__(self, line, filename):
