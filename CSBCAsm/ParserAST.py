@@ -74,17 +74,22 @@ class Immediate():
         return "<Immediate:{}>".format(str(self.value))
 
 class Name():
-    def __init__(self, value, line, column, allow_long=False):
+    def __init__(self, value, line, column, as_long=False):
         self.value = value
         self.line = line
         self.column = column
         self.actual_value = None
-        self.allow_long = allow_long
+        self.as_long = as_long
 
     def guess_size(self):
         if self.actual_value is not None:
-            return self.actual_value.guess_size()
-        return 3 if self.allow_long else 2
+            s = self.actual_value.guess_size()
+            if self.as_long:
+                if s > 3:
+                    return s
+                return 3
+            return s
+        return 3 if self.as_long else 2
 
     def set_actual_value(self, actual_value):
         if self.actual_value is not None:

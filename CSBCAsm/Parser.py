@@ -282,9 +282,9 @@ def CreateParser():
     @rply_parser.production('expression : AND NAME')
     def expression_name(p):
         if len(p) == 1:
-            name = ParserAST.Name(p[0].getstr(), p[0].getsourcepos().lineno, p[0].getsourcepos().colno, allow_long=False)
+            name = ParserAST.Name(p[0].getstr(), p[0].getsourcepos().lineno, p[0].getsourcepos().colno, as_long=False)
         else:
-            name = ParserAST.Name(p[1].getstr(), p[1].getsourcepos().lineno, p[1].getsourcepos().colno, allow_long=True)
+            name = ParserAST.Name(p[1].getstr(), p[1].getsourcepos().lineno, p[1].getsourcepos().colno, as_long=True)
         return name
 
     @rply_parser.production('simple-label : NAME')

@@ -819,7 +819,7 @@ class Segment():
                     else:
                         v = declaration['build_addresses'][j]
 
-                    if name.allow_long:
+                    if name.as_long:
                         name.set_actual_value(v.collapse())
                     else:
                         name.set_actual_value(ParserAST.BinaryOp_And(v.collapse(), ParserAST.Number(0xFFFF, 'hex', 2)).collapse())
