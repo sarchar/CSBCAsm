@@ -39,7 +39,7 @@ class Number():
             nbytes = 1
             while True:
                 try:
-                    v.to_bytes(i, 'little', signed=True)
+                    v.to_bytes(nbytes, 'little', signed=True)
                     return nbytes
                 except OverflowError:
                     # Number too big to fit in 'i' bytes
