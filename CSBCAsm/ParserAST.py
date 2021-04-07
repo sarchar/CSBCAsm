@@ -243,6 +243,9 @@ class UnaryOp_Posigate(UnaryOp):
         return +self.value.eval()
 
 class UnaryOp_Not(UnaryOp):
+    def guess_size(self):
+        return self.value.guess_size()
+
     def collapse(self, drop_overflow_bytes=False):
         c = self.value.collapse(drop_overflow_bytes=drop_overflow_bytes)
         nv = (1 << (c.stated_byte_size * 8)) - 1 - c.eval()
