@@ -266,7 +266,7 @@ class ProgramBuilder():
     def make_label_references(self, line, expr, action):
         self.require_current_segment(line).make_label_references(line, expr, action, self.build_address)
 
-    def replace_equates(self, line, operand):
+    def replace_equates(self, line, operand, replace_undefined=None):
         search_results = operand.find_referenced_names()
         if search_results is not None:
             for name_str, names in search_results.items():
@@ -275,12 +275,17 @@ class ProgramBuilder():
                         name.set_actual_value(self.build_address.collapse())
                 else:
                     equate = self.get_equate(name_str)
+                    if equate is None and replace_undefined is not None:
+                        class VOID: pass
+                        eq = VOID()
+                        eq.expression = replace_undefined
+                        equate = { 'equate': eq }
                     if equate is not None:
                         for name in names:
                             if self.assembler.verbose >= Assembler.VERBOSE_EVERYTHING:
                                 print("=== Line {}: replacing {} with {}".format(line.line_number, name_str, equate['equate'].expression.collapse()))
                             name.set_actual_value(equate['equate'].expression.collapse())
-
+                            
     def replace_macro_arguments(self, line, operand):
         if len(self._macro_arguments) == 0:
             return
@@ -975,7 +980,7 @@ class SetSegmentOrg(BuilderAction):
                         for name in names:
                             name.set_actual_value(equate['equate'].expression.collapse())
                     else:
-                        raise FeatureNotImplementedError("Line {}: can't reference labels in ORG (TODO)".format(self.line.line_number))
+                        raise NameNotEvaluatableError("Line {}: cannot collapse name: {}".format(self.line.line_number, name_str), None)
         try:
             v = self.operand.collapse()
             # we got a value
@@ -2577,7 +2582,7 @@ class CompilerIfAction(BuilderAction):
         program_builder.replace_macro_arguments(self.line, self.expression)
 
         # Complete all the name_references that reference equates now
-        program_builder.replace_equates(self.line, self.expression)
+        program_builder.replace_equates(self.line, self.expression, replace_undefined=ParserAST.Number(0,'dec',1))
 
         try:
             self.result = self.expression.eval()
@@ -2630,7 +2635,7 @@ class CompilerElseIfAction(BuilderAction):
         program_builder.replace_macro_arguments(self.line, self.expression)
 
         # Complete all the name_references that reference equates now
-        program_builder.replace_equates(self.line, self.expression)
+        program_builder.replace_equates(self.line, self.expression, replace_undefined=ParserAST.Number(0,'dec',1))
 
         try:
             self.result = self.expression.eval()

@@ -164,7 +164,7 @@ All compiler directives begin with a period `.`.  Compiler directives are case-i
 
 * `.A8`, `.A16` tell the assembler that the following code is in accumulator/memory normal/long mode. That is, immediate mode instructions that reference the accumulator are 2 or 3 bytes.
 * `.I8`, `.I16` tell the assembler that the following code is in index normal/long mode. That  is, immediate mode instructions that reference the index registers are 2 or 3 bytes.
-* `.IF <expression>`, `.ELIF <expression>`, `.ELSE`, `.ENDIF` Assemble-time IF/ELSE statement.  **Label**s are not allowed in the expression. Example
+* `.IF <expression>`, `.ELIF <expression>`, `.ELSE`, `.ENDIF` Assemble-time IF/ELSE statement.  Equates are allowed in the expression, labels are not. Example
 	```
 	.if DEBUG
 		lda #0x01
@@ -172,6 +172,7 @@ All compiler directives begin with a period `.`.  Compiler directives are case-i
 		lda #0x00
 	.endif
 	```
+    **NOTE**: In IF/ELIF statements *only*, undefined labels are evaluated to $00.
 * `.DB <list of expressions>` Declare Bytes.  The argument is a comma separated list of expressions. Or just byte values.  Quoted strings are accepted.
 * `.DW <list of expressions>` Declare Words.  The argument is a comma separated list of expressions. Or just words.  Quoted strings are NOT accepted.
 * `.FILL <count-expression>, <fill value-expression>` Fill with a repeating byte value.
