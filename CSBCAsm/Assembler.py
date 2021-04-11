@@ -143,6 +143,7 @@ class ProgramBuilder():
             'IF'       : self._process_scd_if,
             'DB'       : self._process_scd_db,
             'DW'       : self._process_scd_dw,
+            'DL'       : self._process_scd_dl,
             'FILL'     : self._process_scd_fill,
             'FILLW'    : self._process_scd_fillw,
             'GLOBAL'   : self._process_scd_global,
@@ -469,7 +470,15 @@ class ProgramBuilder():
         self.append_action(action)
         if self.assembler.verbose >= Assembler.VERBOSE_EVERYTHING:
             print("*** Created words: {}".format(str(statement.operands)))
-        
+
+    def _process_scd_dl(self, line, i, statement):
+        if len(statement.operands.value) == 0:
+            raise IncorrectParameterCountError("Line {}: empty DL".format(line.line_number))
+        action = InsertLongs(line, statement.operands)
+        self.append_action(action)
+        if self.assembler.verbose >= Assembler.VERBOSE_EVERYTHING:
+            print("*** Created longs: {}".format(str(statement.operands)))
+         
     def _process_scd_fill(self, line, i, statement):
         if len(statement.operands.value) != 2:
             raise IncorrectParameterCountError("Line {}: incorrect number of arguments to FILL".format(line.line_number))
@@ -1693,6 +1702,45 @@ class InsertWords(BuilderAction):
                 ba += 2
                 
         return bytes(ret)
+
+class InsertLongs(BuilderAction):
+    def __init__(self, line, operands):
+        self.line = line
+        self.operands = operands
+
+    def _validate(self, program_builder):
+        required_byte_size = 0
+
+        # Announce label references
+        for operand in self.operands.value:
+            program_builder.replace_equates(self.line, operand)
+            program_builder.make_label_references(self.line, operand, self)
+            required_byte_size += 3
+
+        if program_builder.assembler.verbose >= Assembler.VERBOSE_BUILD:
+            print("=== {}: DL takes {} bytes".format(program_builder.require_current_segment(self.line).name.value, required_byte_size))
+        return required_byte_size
+
+    def _generate_bytes(self, program_builder, listing_fp):
+        ret = []
+
+        ba = program_builder.build_address.eval()
+        for operand in self.operands.value:
+            v = operand.collapse()
+            if v.stated_byte_size > 3:
+                raise ParameterTooLargeError("Line {}: argument to DL is too large".format(self.line.line_number))
+            v = v.eval()
+            ret.append(v & 0xFF)
+            ret.append((v >> 8) & 0xFF)
+            ret.append((v >> 16) & 0xFF)
+
+            if listing_fp is not None:
+                lb = program_builder.current_segment.listing_buffer
+                lb.format_with_address_and_bytes(ba, [v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF], ".DL 0x{:06X}".format(v & 0xFFFFFF))
+                ba += 3
+                
+        return bytes(ret)
+
 
 class FillBytes(BuilderAction):
     def __init__(self, line, operands):

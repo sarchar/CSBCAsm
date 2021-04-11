@@ -173,8 +173,9 @@ All compiler directives begin with a period `.`.  Compiler directives are case-i
 	.endif
 	```
     **NOTE**: In IF/ELIF statements *only*, undefined labels are evaluated to $00.
-* `.DB <list of expressions>` Declare Bytes.  The argument is a comma separated list of expressions. Or just byte values.  Quoted strings are accepted.
-* `.DW <list of expressions>` Declare Words.  The argument is a comma separated list of expressions. Or just words.  Quoted strings are NOT accepted.
+* `.DB <list of expressions>` Declare Bytes.  The argument is a comma separated list of expressions. Quoted strings are accepted.
+* `.DW <list of expressions>` Declare Words.  The argument is a comma separated list of expressions. Quoted strings are NOT accepted.
+* `.DL <list of expressions>` Declare 24-bit Longs.  The argument is a comma separated list of expressions. Quoted strings are NOT accepted.
 * `.FILL <count-expression>, <fill value-expression>` Fill with a repeating byte value.
 * `.FILLW <count-expression>, <fill value-expression>` Fill with a repeating word value.
 * `.GLOBAL <label>` Set a **label** as global.  Otherwise, labels aren't useable outside of their segment.
