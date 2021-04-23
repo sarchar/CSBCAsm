@@ -1782,7 +1782,8 @@ class FillBytes(BuilderAction):
             ba = program_builder.build_address.eval()
             lb = program_builder.current_segment.listing_buffer
             for x in range(0, count.eval(), 4):
-                b = [fill_byte.eval()] * 4
+                c = min(4, count.eval() - x)
+                b = [fill_byte.eval()] * c
                 if x == 0:
                     lb.format_with_address_and_bytes(ba, b, ".FILL 0x{:04X}, 0x{:02X}".format(count.eval(), fill_byte.eval()))
                 else:
@@ -1959,7 +1960,7 @@ class IncludeAction(BuilderAction):
                     except OSError:
                         continue
             else:
-                raise FillNotFoundError("Could not locate file '{}'".format(filename.value))
+                raise FileNotFoundError("Could not locate file '{}'".format(filename.value))
 
         self.program = program_builder.assembler.parse_string(content)
         for line in self.program:
@@ -2199,7 +2200,10 @@ class ForeverAction(BuilderAction):
 
         if listing_fp is not None:
             lb = program_builder.current_segment.listing_buffer
-            dist_str = "{} 0x{:04X}".format(inst, int.from_bytes(bytes([hex_distance]), 'little', signed=True) + (program_builder.build_address.eval() & 0xFFFF) + 2)
+            if inst == "BRL":
+                dist_str = "{} 0x{:04X}".format(inst, int.from_bytes(hex_distance.to_bytes(2, 'little', signed=False), 'little', signed=True) + (program_builder.build_address.eval() & 0xFFFF) + 2)
+            else:
+                dist_str = "{} 0x{:02X}".format(inst, int.from_bytes(hex_distance.to_bytes(1, 'little', signed=False), 'little', signed=True) + (program_builder.build_address.eval() & 0xFF) + 2)
             lb.format_with_address_and_bytes(program_builder.build_address.eval(), ret, dist_str, comment=";; FOREVER")
         return ret
 
@@ -2693,7 +2697,7 @@ class CompilerElseIfAction(BuilderAction):
                     program_builder.validate_one_action(action)
             elif self.else_action is not None:
                 program_builder.validate_one_action(self.else_action)
-        except:
+        except Exception as e:
             raise
 
         return 0

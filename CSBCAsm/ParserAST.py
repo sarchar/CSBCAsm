@@ -67,6 +67,12 @@ class Immediate():
     def __init__(self, value):
         self.value = value
 
+    def guess_size(self):
+        return self.value.guess_size()
+
+    def collapse(self, drop_overflow_bytes=False):
+        return self.value.collapse(drop_overflow_bytes=drop_overflow_bytes)
+
     def find_referenced_names(self, search_results=None):
         return self.value.find_referenced_names(search_results)
 

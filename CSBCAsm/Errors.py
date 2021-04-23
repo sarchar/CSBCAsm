@@ -85,3 +85,6 @@ class MissingMacroLabelError(Exception):
 class ElipsesNotValidError(Exception):
     pass
 
+class FileNotFoundError(Exception):
+    pass
+
