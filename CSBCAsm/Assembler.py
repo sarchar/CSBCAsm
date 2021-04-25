@@ -2188,6 +2188,8 @@ class ForeverAction(BuilderAction):
 
         distance = self.do_action.do_location.eval() - (program_builder.build_address.eval() + 2)
         if distance < -128 or distance > 127:
+            # recompute distance because the instruction will be 3 bytes, not 2.
+            distance = self.do_action.do_location.eval() - (program_builder.build_address.eval() + 3)
             inst = "BRL"
             opcode = program_builder.assembler.opcodes.get_instruction_opcode(inst, Opcodes.OpcodeDatabase.AddressingMode.RELATIVE_LONG)
             hex_distance = distance & 0xFFFF
@@ -2201,7 +2203,7 @@ class ForeverAction(BuilderAction):
         if listing_fp is not None:
             lb = program_builder.current_segment.listing_buffer
             if inst == "BRL":
-                dist_str = "{} 0x{:04X}".format(inst, int.from_bytes(hex_distance.to_bytes(2, 'little', signed=False), 'little', signed=True) + (program_builder.build_address.eval() & 0xFFFF) + 2)
+                dist_str = "{} 0x{:04X}".format(inst, int.from_bytes(hex_distance.to_bytes(2, 'little', signed=False), 'little', signed=True) + (program_builder.build_address.eval() & 0xFFFF) + 3)
             else:
                 dist_str = "{} 0x{:02X}".format(inst, int.from_bytes(hex_distance.to_bytes(1, 'little', signed=False), 'little', signed=True) + (program_builder.build_address.eval() & 0xFF) + 2)
             lb.format_with_address_and_bytes(program_builder.build_address.eval(), ret, dist_str, comment=";; FOREVER")
