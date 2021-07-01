@@ -6,7 +6,7 @@ from . import ParserAST
 from . import Opcodes
 
 from .Lexer import CreateLexer
-from .Parser import CreateParser
+from .Parser import CreateParser, ParseError
 from .Errors import *
 
 # Hacky wrapper around LexerStream so we can
@@ -60,7 +60,7 @@ class Assembler():
         self.lexer = CreateLexer()
         self.parser = CreateParser()
 
-    def parse_string(self, s):
+    def parse_string(self, s, fn="<unknown>"):
         lines = s.split("\n")
         program = [] # list of lines
         in_multiline_comment = False
@@ -73,7 +73,11 @@ class Assembler():
                     line = line[j:]
 
                 tokens = LexerWrapper(self.lexer.lex(line), in_multiline_comment=in_multiline_comment)
-                parsed_line = self.parser.parse(tokens)
+                try:
+                    parsed_line = self.parser.parse(tokens)
+                except ParseError as e:
+                    print("failure parsing line {} in file {}: {}".format(i + 1, fn, str(e)))
+                    raise
                 parsed_line.line_number = i + 1
                 program.append(parsed_line)
     
@@ -81,13 +85,13 @@ class Assembler():
     
         return program
 
-    def assemble_string(self, s):
-        return self.assemble(self.parse_string(s))
+    def assemble_string(self, s, fn):
+        return self.assemble(self.parse_string(s, fn))
 
     def assemble_file(self, fn):
         with open(fn, "r") as fp:
             buf = fp.read()
-        return self.assemble_string(buf)
+        return self.assemble_string(buf, fn)
 
     def assemble(self, program):
         pb = ProgramBuilder(self, program)
@@ -1962,7 +1966,7 @@ class IncludeAction(BuilderAction):
             else:
                 raise FileNotFoundError("Could not locate file '{}'".format(filename.value))
 
-        self.program = program_builder.assembler.parse_string(content)
+        self.program = program_builder.assembler.parse_string(content, filename)
         for line in self.program:
             program_builder.process_line(line)
 
