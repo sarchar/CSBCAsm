@@ -2086,9 +2086,9 @@ class EndIfAction(BuilderAction):
         program_builder.require_current_segment(self.line)
         ifelseaction = program_builder.pop_flow_control()
         if ifelseaction is None:
-            raise UnexpectedFlowControlError("Line {}: unexpected ENDIF".format(line.line_number))
+            raise UnexpectedFlowControlError("Line {}: unexpected ENDIF".format(self.line.line_number))
         if not isinstance(ifelseaction, IfAction) and not isinstance(ifelseaction, ElseAction):
-            raise UnmatchedEndIfError("Line {}: ENDIF with no matching IF statement".format(line.line_number))
+            raise UnmatchedEndIfError("Line {}: ENDIF with no matching IF statement".format(self.line.line_number))
         ifelseaction.set_endif(program_builder)
         self.condition = ifelseaction.condition
         return 0
