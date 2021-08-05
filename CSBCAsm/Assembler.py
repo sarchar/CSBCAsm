@@ -86,14 +86,19 @@ class Assembler():
         return program
 
     def assemble_string(self, s, fn):
-        return self.assemble(self.parse_string(s, fn))
+        try:
+            return self.assemble(self.parse_string(s, fn), fn)
+        except:
+            # on all errors, print the file name
+            print("exception caught while parsing file {}".format(fn))
+            raise
 
     def assemble_file(self, fn):
         with open(fn, "r") as fp:
             buf = fp.read()
         return self.assemble_string(buf, fn)
 
-    def assemble(self, program):
+    def assemble(self, program, fn):
         pb = ProgramBuilder(self, program)
 
         # Parse the AST, create the segments and the builders
@@ -1103,7 +1108,7 @@ class BuildInstructionAction(BuilderAction):
                     self.instruction_flags = flags
                     break
         else:
-            raise UnknownAddressingModeError("Line {}: could not determine addressing mode for '{}'".format(self.line.line_number, self.statement.name.value))
+            raise UnknownAddressingModeError("Line {}: could not determine addressing mode for '{}' (operands = {})".format(self.line.line_number, self.statement.name.value, self.statement.operands))
 
         # determine byte size for said opcode
         instruction_size = opcodes.get_instruction_size(self.statement.name.value, self.addressing_mode)

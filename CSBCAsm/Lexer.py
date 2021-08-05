@@ -16,7 +16,7 @@ def CreateLexer():
     rply_lexer.add("QUOTED_STRING", r'(p)?\"(\\\"|[^\r\n\"])*\"')
 
     rply_lexer.add("ELIPSES", r'\.\.\.')
-    rply_lexer.add("NAME", r'([a-zA-Z_\.][a-zA-Z_0-9]*)|(\.)|(@[0-9]+(\+|\-)?)|(\\([0-9]+|[Liv]))') #TODO \I and \V
+    rply_lexer.add("NAME", r'([a-zA-Z_\.][a-zA-Z_0-9\$]*)|(\.)|(@[0-9]+(\+|\-)?)|(\\([0-9]+|[Liv]))') #TODO \I and \V
 
     rply_lexer.add("HEX_NUMBER", r'(\$|0x)[a-fA-F0-9:]+')
     rply_lexer.add("OCT_NUMBER", r'(\&|0o)[0-7]+')
