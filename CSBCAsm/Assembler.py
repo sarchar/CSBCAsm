@@ -9,6 +9,8 @@ from .Lexer import CreateLexer
 from .Parser import CreateParser, ParseError
 from .Errors import *
 
+from rply.errors import LexingError
+
 # Hacky wrapper around LexerStream so we can
 # skip over multiline comments in our single line parser
 class LexerWrapper():
@@ -60,7 +62,7 @@ class Assembler():
         self.lexer = CreateLexer()
         self.parser = CreateParser()
 
-    def parse_string(self, s, fn="<unknown>"):
+    def parse_string(self, s, fn="<unknown>", included_from=None):
         lines = s.split("\n")
         program = [] # list of lines
         in_multiline_comment = False
@@ -75,10 +77,15 @@ class Assembler():
                 tokens = LexerWrapper(self.lexer.lex(line), in_multiline_comment=in_multiline_comment)
                 try:
                     parsed_line = self.parser.parse(tokens)
+                except LexingError as e:
+                    print("failure parsing line {} in file {}: {}".format(i + 1, fn, str(e)))
+                    raise
                 except ParseError as e:
                     print("failure parsing line {} in file {}: {}".format(i + 1, fn, str(e)))
                     raise
                 parsed_line.line_number = i + 1
+                parsed_line.filename = fn
+                parsed_line.included_from = included_from
                 program.append(parsed_line)
     
                 in_multiline_comment = tokens.ended_with_comment
@@ -164,7 +171,8 @@ class ProgramBuilder():
         self._label_declarations = {
         }
 
-        self._global_labels = set()
+        self._global_labels = {
+        }
 
         self._all_labels = set() # Only useful to prevent EQUATES from overriding local labels
 
@@ -211,6 +219,13 @@ class ProgramBuilder():
 
     def get_global_label(self, label_str):
         return self._label_declarations.get(label_str, None)
+
+    def set_global_label(self, line, label_str):
+        current_segment = self.require_current_segment(line)
+        self._global_labels[label_str] = { 'segment': current_segment }
+        label_declaration = current_segment.get_label(label_str)
+        if label_declaration is not None:
+            self._label_declarations[label_str] = label_declaration
 
     def verify_label_available(self, label_str, line, current_segment):
         if label_str[0] == '.':
@@ -263,7 +278,18 @@ class ProgramBuilder():
 
         current_segment.declare_label(label_str, label_declaration)
 
-        if label_str in self._global_labels or current_segment.global_all:
+        if (label_str in self._global_labels and self._global_labels[label_str]['segment'] is current_segment) or current_segment.global_all:
+            if label_str == 'MATH_AddYA_16':
+                included_from_files = []
+                k = line.included_from
+                while k is not None:
+                    if isinstance(k.filename, ParserAST.QuotedString):
+                        included_from_files.append(k.filename.value)
+                    else:
+                        included_from_files.append(k.filename)
+                    k = k.included_from
+                included_from = ', which was included from '.join(included_from_files)
+                print(label_str, 'defined global at line', line.line_number, "file", line.filename.value, 'included from', included_from)
             self._label_declarations[label_str] = label_declaration
             
         return label_declaration
@@ -509,11 +535,10 @@ class ProgramBuilder():
                 raise GlobalRedefinitionError("Line {}: argument {} redefines label as global again".format(line.line_number, j + 1))
             if operand.value[0] == '@':
                 raise InvalidGlobalError("Line {}: label '{}' can't be global".format(line.line_number, operand.value))
-            self._global_labels.add(operand.value)
-            if self.current_segment is not None:
-                label_declaration = self.current_segment.get_label(operand.value)
-                if label_declaration is not None:
-                    self._label_declarations[operand.value] = label_declaration
+            action = SetGlobal(line, operand)
+            self.append_action(action)
+            if self.assembler.verbose >= Assembler.VERBOSE_EVERYTHING:
+                print("*** Created SetGlobal for {}".format(operand.value))
 
     def _process_scd_globalall(self, line, i, statement):
         if len(statement.operands.value) > 0:
@@ -701,7 +726,8 @@ class ProgramBuilder():
         
             self.build_address = ParserAST.BinaryOp_Add(self.build_address, ParserAST.Number(required_byte_size, 'dec', ParserAST.Number.required_bytes(required_byte_size))).collapse()
             if self.build_address.eval() > current_segment.end.eval():
-                raise SegmentOverflowError("Line {}: segment \"{}\" reaches beyond segment limits".format(action.line.line_number, current_segment.name.value))
+                #raise SegmentOverflowError("Line {}: segment \"{}\" reaches beyond segment limits".format(action.line.line_number, current_segment.name.value))
+                print(SegmentOverflowError("Line {}: segment \"{}\" reaches beyond segment limits".format(action.line.line_number, current_segment.name.value)))
         
             current_segment.last_build_address = self.build_address
 
@@ -810,7 +836,7 @@ class Segment():
                 
             declaration = program_builder.get_label(name_str)
             if declaration is None:
-                raise UndefinedLabelError("Line {}: name \"{}\" used but not defined".format(references[0]['action'].line.line_number, name_str))
+                raise UndefinedLabelError("Line {} file {}: name \"{}\" used but not defined".format(references[0]['action'].line.line_number, references[0]['action'].line.filename, name_str))
 
             for reference in references:
                 for name in reference['names']:
@@ -1901,6 +1927,21 @@ class SetIndex16(BuilderAction):
         program_builder.index_mode = 16
         return bytes()
 
+class SetGlobal(BuilderAction):
+    def __init__(self, line, label):
+        self.line = line
+        self.label = label
+
+    def _validate(self, program_builder):
+        if program_builder.assembler.verbose >= Assembler.VERBOSE_BUILD:
+            print("=== Setting label {} to global from segment {}".format(label.value, cs.name.value))
+        program_builder.set_global_label(self.line, self.label.value)
+        return 0
+
+    def _generate_bytes(self, program_builder, listing_fp):
+        program_builder.accumulator_mode = 8
+        return bytes()
+
 class SetGlobalAll(BuilderAction):
     def __init__(self, line):
         self.line = line
@@ -1966,7 +2007,9 @@ class IncludeAction(BuilderAction):
             else:
                 raise FileNotFoundError("Could not locate file '{}'".format(filename.value))
 
-        self.program = program_builder.assembler.parse_string(content, filename)
+        if program_builder.assembler.verbose >= program_builder.assembler.VERBOSE_BASIC:
+            print("including {}".format(filename.value))
+        self.program = program_builder.assembler.parse_string(content, fn=filename.value, included_from=line)
         for line in self.program:
             program_builder.process_line(line)
 
