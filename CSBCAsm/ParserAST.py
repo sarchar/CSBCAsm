@@ -76,6 +76,9 @@ class Immediate():
     def find_referenced_names(self, search_results=None):
         return self.value.find_referenced_names(search_results)
 
+    def eval(self):
+        return self.value.eval()
+
     def __str__(self):
         return "<Immediate:{}>".format(str(self.value))
 
