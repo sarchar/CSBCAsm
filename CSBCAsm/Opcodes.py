@@ -225,7 +225,7 @@ class OpcodeDatabase():
             'LDA': {
                 OpcodeDatabase.AddressingMode.IMMEDIATE                        : OpcodeDatabase._immediate_accumulator(0xA9),
                 OpcodeDatabase.AddressingMode.DIRECT                           : OpcodeDatabase._direct(0xA5),
-                OpcodeDatabase.AddressingMode.DIRECT_INDEXED_X                 : OpcodeDatabase._direct_indexed_x(0xB5),
+                OpcodeDatabase.AddressingMode.DIRECT_INDEXED_X                 : OpcodeDatabase._direct_indexed_x(0xB4),
                 OpcodeDatabase.AddressingMode.DIRECT_INDEXED_X_INDIRECT        : OpcodeDatabase._direct_indexed_x_indirect(0xA1),
                 OpcodeDatabase.AddressingMode.DIRECT_INDIRECT_INDEXED_Y        : OpcodeDatabase._direct_indirect_indexed_y(0xB1),
                 OpcodeDatabase.AddressingMode.DIRECT_INDIRECT                  : OpcodeDatabase._direct_indirect(0xB2),
